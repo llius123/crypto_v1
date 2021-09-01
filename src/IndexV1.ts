@@ -8,8 +8,32 @@ import express from 'express';
 const app = express()
 const port = 3000
 
-app.get('/lel', async (req: any, res: any) => {
-    res.send({ url: '/lel' })
+app.get('/startWorker4h', async (req: any, res: any) => {
+
+
+    const times = [
+        { hour: 2, minute: 5 },
+        { hour: 6, minute: 5 },
+        { hour: 10, minute: 5 },
+        { hour: 14, minute: 5 },
+        { hour: 18, minute: 5 },
+        { hour: 22, minute: 5 },
+    ];
+
+    const workerV1 = new WorkerV1()
+    const binanceV1 = new BinanceV1()
+    const databaseSQLiteV1Moneda = new DatabaseSQLiteV1<Moneda>()
+    await databaseSQLiteV1Moneda.openConnection()
+    const data = await databaseSQLiteV1Moneda.find(Moneda, { where: { nombre: 'BTCUSDT' } })
+    workerV1.startWorkers(times, () => {
+        binanceV1.getPrice(data, '4h', (precio: Precio) => {
+            databaseSQLiteV1Moneda.save([precio], Precio)
+            console.log("Dato guardado");
+        })
+    })
+
+
+    res.send({ url: '/startWorker4h' })
 })
 
 
@@ -20,6 +44,7 @@ app.listen(port, () => {
 
 
 export class IndexV1 {
+
     async guardarDatosHistoricos() {
         const binanceV1 = new BinanceV1()
         const databaseSQLiteV1Moneda = new DatabaseSQLiteV1<Moneda>()
@@ -58,7 +83,8 @@ export class IndexV1 {
         const data = await databaseSQLiteV1Moneda.find(Moneda, { where: { nombre: 'BTCUSDT' } })
         workerV1.startWorkers([{ minute: null }], () => {
             binanceV1.getPrice(data, '4h', (precio: Precio) => {
-                // Guardar en bbdd
+                console.log(precio);
+
             })
         })
     }
